@@ -5,27 +5,27 @@ import (
 	"io"
 	"os"
 
-	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	pb "github.com/ipfs/go-unixfs/pb"
+	dag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	pb "github.com/dms3-fs/go-unixfs/pb"
 
-	cid "github.com/ipfs/go-cid"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	files "github.com/ipfs/go-ipfs-cmdkit/files"
-	pi "github.com/ipfs/go-ipfs-posinfo"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	files "github.com/dms3-fs/go-fs-cmdkit/files"
+	pi "github.com/dms3-fs/go-fs-posinfo"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // DagBuilderHelper wraps together a bunch of objects needed to
 // efficiently create unixfs dag trees
 type DagBuilderHelper struct {
-	dserv      ipld.DAGService
+	dserv      dms3ld.DAGService
 	spl        chunker.Splitter
 	recvdErr   error
 	rawLeaves  bool
 	nextData   []byte // the next item to return.
 	maxlinks   int
-	batch      *ipld.Batch
+	batch      *dms3ld.Batch
 	cidBuilder cid.Builder
 
 	// Filestore support variables.
@@ -49,7 +49,7 @@ type DagBuilderParams struct {
 	// Maximum number of links per intermediate node
 	Maxlinks int
 
-	// RawLeaves signifies that the importer should use raw ipld nodes as leaves
+	// RawLeaves signifies that the importer should use raw dms3ld nodes as leaves
 	// instead of using the unixfs TRaw type
 	RawLeaves bool
 
@@ -57,7 +57,7 @@ type DagBuilderParams struct {
 	CidBuilder cid.Builder
 
 	// DAGService to write blocks to (required)
-	Dagserv ipld.DAGService
+	Dagserv dms3ld.DAGService
 
 	// NoCopy signals to the chunker that it should track fileinfo for
 	// filestore adds
@@ -78,7 +78,7 @@ func (dbp *DagBuilderParams) New(spl chunker.Splitter) *DagBuilderHelper {
 		rawLeaves:  dbp.RawLeaves,
 		cidBuilder: dbp.CidBuilder,
 		maxlinks:   dbp.Maxlinks,
-		batch:      ipld.NewBatch(context.TODO(), dbp.Dagserv),
+		batch:      dms3ld.NewBatch(context.TODO(), dbp.Dagserv),
 	}
 	if fi, ok := spl.Reader().(files.FileInfo); dbp.NoCopy && ok {
 		db.fullPath = fi.AbsPath()
@@ -131,7 +131,7 @@ func (db *DagBuilderHelper) Next() ([]byte, error) {
 }
 
 // GetDagServ returns the dagservice object this Helper is using
-func (db *DagBuilderHelper) GetDagServ() ipld.DAGService {
+func (db *DagBuilderHelper) GetDagServ() dms3ld.DAGService {
 	return db.dserv
 }
 
@@ -186,8 +186,8 @@ func (db *DagBuilderHelper) NewLeaf(data []byte) (*UnixfsNode, error) {
 }
 
 // NewLeafNode is a variation from `NewLeaf` (see its description) that
-// returns an `ipld.Node` instead.
-func (db *DagBuilderHelper) NewLeafNode(data []byte) (ipld.Node, error) {
+// returns an `dms3ld.Node` instead.
+func (db *DagBuilderHelper) NewLeafNode(data []byte) (dms3ld.Node, error) {
 	if len(data) > BlockSizeLimit {
 		return nil, ErrSizeLimitExceeded
 	}
@@ -212,13 +212,13 @@ func (db *DagBuilderHelper) NewLeafNode(data []byte) (ipld.Node, error) {
 		return nil, err
 	}
 	// TODO: Encapsulate this sequence of calls into a function that
-	// just returns the final `ipld.Node` avoiding going through
+	// just returns the final `dms3ld.Node` avoiding going through
 	// `FSNodeOverDag`.
 	// TODO: Using `TFile` for backwards-compatibility, a bug in the
 	// balanced builder was causing the leaf nodes to be generated
 	// with this type instead of `TRaw`, the one that should be used
 	// (like the trickle builder does).
-	// (See https://github.com/ipfs/go-ipfs/pull/5120.)
+	// (See https://github.com/dms3-fs/go-dms3-fs/pull/5120.)
 
 	return node, nil
 }
@@ -269,12 +269,12 @@ func (db *DagBuilderHelper) GetNextDataNode() (*UnixfsNode, error) {
 }
 
 // NewLeafDataNode is a variation of `GetNextDataNode` that returns
-// an `ipld.Node` instead. It builds the `node` with the data obtained
+// an `dms3ld.Node` instead. It builds the `node` with the data obtained
 // from the Splitter and returns it with the `dataSize` (that will be
 // used to keep track of the DAG file size). The size of the data is
 // computed here because after that it will be hidden by `NewLeafNode`
-// inside a generic `ipld.Node` representation.
-func (db *DagBuilderHelper) NewLeafDataNode() (node ipld.Node, dataSize uint64, err error) {
+// inside a generic `dms3ld.Node` representation.
+func (db *DagBuilderHelper) NewLeafDataNode() (node dms3ld.Node, dataSize uint64, err error) {
 	fileData, err := db.Next()
 	if err != nil {
 		return nil, 0, err
@@ -294,14 +294,14 @@ func (db *DagBuilderHelper) NewLeafDataNode() (node ipld.Node, dataSize uint64, 
 }
 
 // ProcessFileStore generates, if Filestore is being used, the
-// `FilestoreNode` representation of the `ipld.Node` that
+// `FilestoreNode` representation of the `dms3ld.Node` that
 // contains the file data. If Filestore is not being used just
 // return the same node to continue with its addition to the DAG.
 //
 // The `db.offset` is updated at this point (instead of when
 // `NewLeafDataNode` is called, both work in tandem but the
 // offset is more related to this function).
-func (db *DagBuilderHelper) ProcessFileStore(node ipld.Node, dataSize uint64) ipld.Node {
+func (db *DagBuilderHelper) ProcessFileStore(node dms3ld.Node, dataSize uint64) dms3ld.Node {
 	// Check if Filestore is being used.
 	if db.fullPath != "" {
 		// Check if the node is actually a raw node (needed for
@@ -328,7 +328,7 @@ func (db *DagBuilderHelper) ProcessFileStore(node ipld.Node, dataSize uint64) ip
 }
 
 // Add sends a node to the DAGService, and returns it.
-func (db *DagBuilderHelper) Add(node *UnixfsNode) (ipld.Node, error) {
+func (db *DagBuilderHelper) Add(node *UnixfsNode) (dms3ld.Node, error) {
 	dn, err := node.GetDagNode()
 	if err != nil {
 		return nil, err
@@ -355,10 +355,10 @@ func (db *DagBuilderHelper) Close() error {
 	return db.batch.Commit()
 }
 
-// AddNodeAndClose adds the last `ipld.Node` from the DAG and
+// AddNodeAndClose adds the last `dms3ld.Node` from the DAG and
 // closes the builder. It returns the same `node` passed as
 // argument.
-func (db *DagBuilderHelper) AddNodeAndClose(node ipld.Node) (ipld.Node, error) {
+func (db *DagBuilderHelper) AddNodeAndClose(node dms3ld.Node) (dms3ld.Node, error) {
 	err := db.batch.Add(node)
 	if err != nil {
 		return nil, err
@@ -373,13 +373,13 @@ func (db *DagBuilderHelper) AddNodeAndClose(node ipld.Node) (ipld.Node, error) {
 }
 
 // FSNodeOverDag encapsulates an `unixfs.FSNode` that will be stored in a
-// `dag.ProtoNode`. Instead of just having a single `ipld.Node` that
+// `dag.ProtoNode`. Instead of just having a single `dms3ld.Node` that
 // would need to be constantly (un)packed to access and modify its
 // internal `FSNode` in the process of creating a UnixFS DAG, this
 // structure stores an `FSNode` cache to manipulate it (add child nodes)
 // directly , and only when the node has reached its final (immutable) state
 // (signaled by calling `Commit()`) is it committed to a single (indivisible)
-// `ipld.Node`.
+// `dms3ld.Node`.
 //
 // It is used mainly for internal (non-leaf) nodes, and for some
 // representations of data leaf nodes (that don't use raw nodes or
@@ -408,12 +408,12 @@ func (db *DagBuilderHelper) NewFSNodeOverDag(fsNodeType pb.Data_DataType) *FSNod
 	return node
 }
 
-// AddChild adds a `child` `ipld.Node` to both node layers. The
+// AddChild adds a `child` `dms3ld.Node` to both node layers. The
 // `dag.ProtoNode` creates a link to the child node while the
 // `ft.FSNode` stores its file size (that is, not the size of the
 // node but the size of the file data that it is storing at the
 // UnixFS layer). The child is also stored in the `DAGService`.
-func (n *FSNodeOverDag) AddChild(child ipld.Node, fileSize uint64, db *DagBuilderHelper) error {
+func (n *FSNodeOverDag) AddChild(child dms3ld.Node, fileSize uint64, db *DagBuilderHelper) error {
 	err := n.dag.AddNodeLink("", child)
 	if err != nil {
 		return err
@@ -424,12 +424,12 @@ func (n *FSNodeOverDag) AddChild(child ipld.Node, fileSize uint64, db *DagBuilde
 	return db.batch.Add(child)
 }
 
-// Commit unifies (resolves) the cache nodes into a single `ipld.Node`
+// Commit unifies (resolves) the cache nodes into a single `dms3ld.Node`
 // that represents them: the `ft.FSNode` is encoded inside the
 // `dag.ProtoNode`.
 //
 // TODO: Evaluate making it read-only after committing.
-func (n *FSNodeOverDag) Commit() (ipld.Node, error) {
+func (n *FSNodeOverDag) Commit() (dms3ld.Node, error) {
 	fileData, err := n.file.GetBytes()
 	if err != nil {
 		return nil, err

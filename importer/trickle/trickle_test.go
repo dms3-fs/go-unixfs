@@ -9,15 +9,15 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	ft "github.com/ipfs/go-unixfs"
-	h "github.com/ipfs/go-unixfs/importer/helpers"
-	uio "github.com/ipfs/go-unixfs/io"
+	ft "github.com/dms3-fs/go-unixfs"
+	h "github.com/dms3-fs/go-unixfs/importer/helpers"
+	uio "github.com/dms3-fs/go-unixfs/io"
 
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	u "github.com/ipfs/go-ipfs-util"
-	ipld "github.com/ipfs/go-ipld-format"
-	merkledag "github.com/ipfs/go-merkledag"
-	mdtest "github.com/ipfs/go-merkledag/test"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	u "github.com/dms3-fs/go-fs-util"
+	dms3ld "github.com/dms3-fs/go-ld-format"
+	merkledag "github.com/dms3-fs/go-merkledag"
+	mdtest "github.com/dms3-fs/go-merkledag/test"
 )
 
 type UseRawLeaves bool
@@ -32,7 +32,7 @@ func runBothSubtests(t *testing.T, tfunc func(*testing.T, UseRawLeaves)) {
 	t.Run("leaves=Raw", func(t *testing.T) { tfunc(t, RawLeaves) })
 }
 
-func buildTestDag(ds ipld.DAGService, spl chunker.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
+func buildTestDag(ds dms3ld.DAGService, spl chunker.Splitter, rawLeaves UseRawLeaves) (*merkledag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:   ds,
 		Maxlinks:  h.DefaultLinksPerBlock,

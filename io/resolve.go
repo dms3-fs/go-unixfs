@@ -3,16 +3,16 @@ package io
 import (
 	"context"
 
-	dag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	hamt "github.com/ipfs/go-unixfs/hamt"
+	dag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	hamt "github.com/dms3-fs/go-unixfs/hamt"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // ResolveUnixfsOnce resolves a single hop of a path through a graph in a
 // unixfs context. This includes handling traversing sharded directories.
-func ResolveUnixfsOnce(ctx context.Context, ds ipld.NodeGetter, nd ipld.Node, names []string) (*ipld.Link, []string, error) {
+func ResolveUnixfsOnce(ctx context.Context, ds dms3ld.NodeGetter, nd dms3ld.Node, names []string) (*dms3ld.Link, []string, error) {
 	switch nd := nd.(type) {
 	case *dag.ProtoNode:
 		upb, err := ft.FromBytes(nd.Data())

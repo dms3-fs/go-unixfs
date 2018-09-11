@@ -9,7 +9,7 @@
 // contrast, leaf nodes with data have multiple possible representations: UnixFS
 // nodes as above, raw nodes with just the file data (no format) and Filestore
 // nodes (that directly link to the file on disk using a format stored on a raw
-// node, see the `go-ipfs/filestore` package for details of Filestore.)
+// node, see the `go-dms3-fs/filestore` package for details of Filestore.)
 //
 // In the case the entire file fits into just one node it will be formatted as a
 // (single) leaf node (without parent) with the possible representations already
@@ -43,10 +43,10 @@ package balanced
 import (
 	"errors"
 
-	ft "github.com/ipfs/go-unixfs"
-	h "github.com/ipfs/go-unixfs/importer/helpers"
+	ft "github.com/dms3-fs/go-unixfs"
+	h "github.com/dms3-fs/go-unixfs/importer/helpers"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // Layout builds a balanced DAG layout. In a balanced DAG of depth 1, leaf nodes
@@ -120,7 +120,7 @@ import (
 //        | Chunk 1 |   | Chunk 2 |   | Chunk 3 |
 //        +=========+   +=========+   + - - - - +
 //
-func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
+func Layout(db *h.DagBuilderHelper) (dms3ld.Node, error) {
 	if db.Done() {
 		// No data, return just an empty node.
 		root, err := db.NewLeafNode(nil)
@@ -197,13 +197,13 @@ func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
 // child nodes without packing/unpacking the UnixFS layer node (having an internal
 // `ft.FSNode` cache).
 //
-// It returns the `ipld.Node` representation of the passed `node` filled with
+// It returns the `dms3ld.Node` representation of the passed `node` filled with
 // children and the `nodeFileSize` with the total size of the file chunk (leaf)
 // nodes stored under this node (parent nodes store this to enable efficient
 // seeking through the DAG when reading data later).
 //
 // warning: **children** pinned indirectly, but input node IS NOT pinned.
-func fillNodeRec(db *h.DagBuilderHelper, node *h.FSNodeOverDag, depth int) (filledNode ipld.Node, nodeFileSize uint64, err error) {
+func fillNodeRec(db *h.DagBuilderHelper, node *h.FSNodeOverDag, depth int) (filledNode dms3ld.Node, nodeFileSize uint64, err error) {
 	if depth < 1 {
 		return nil, 0, errors.New("attempt to fillNode at depth < 1")
 	}
@@ -214,7 +214,7 @@ func fillNodeRec(db *h.DagBuilderHelper, node *h.FSNodeOverDag, depth int) (fill
 
 	// Child node created on every iteration to add to parent `node`.
 	// It can be a leaf node or another internal node.
-	var childNode ipld.Node
+	var childNode dms3ld.Node
 	// File size from the child node needed to update the `FSNode`
 	// in `node` when adding the child.
 	var childFileSize uint64

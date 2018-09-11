@@ -8,10 +8,10 @@ import (
 	"io"
 	"path"
 
-	tar "github.com/ipfs/go-unixfs/archive/tar"
-	uio "github.com/ipfs/go-unixfs/io"
+	tar "github.com/dms3-fs/go-unixfs/archive/tar"
+	uio "github.com/dms3-fs/go-unixfs/io"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // DefaultBufSize is the buffer size for gets. for now, 1MB, which is ~4 blocks.
@@ -30,8 +30,8 @@ func (i *identityWriteCloser) Close() error {
 	return nil
 }
 
-// DagArchive is equivalent to `ipfs getdag $hash | maybe_tar | maybe_gzip`
-func DagArchive(ctx context.Context, nd ipld.Node, name string, dag ipld.DAGService, archive bool, compression int) (io.Reader, error) {
+// DagArchive is equivalent to `dms3fs getdag $hash | maybe_tar | maybe_gzip`
+func DagArchive(ctx context.Context, nd dms3ld.Node, name string, dag dms3ld.DAGService, archive bool, compression int) (io.Reader, error) {
 
 	cleaned := path.Clean(name)
 	_, filename := path.Split(cleaned)

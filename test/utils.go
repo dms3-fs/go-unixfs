@@ -8,17 +8,17 @@ import (
 	"io/ioutil"
 	"testing"
 
-	ft "github.com/ipfs/go-unixfs"
-	h "github.com/ipfs/go-unixfs/importer/helpers"
-	trickle "github.com/ipfs/go-unixfs/importer/trickle"
+	ft "github.com/dms3-fs/go-unixfs"
+	h "github.com/dms3-fs/go-unixfs/importer/helpers"
+	trickle "github.com/dms3-fs/go-unixfs/importer/trickle"
 
-	cid "github.com/ipfs/go-cid"
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	u "github.com/ipfs/go-ipfs-util"
-	ipld "github.com/ipfs/go-ipld-format"
-	mdag "github.com/ipfs/go-merkledag"
-	mdagmock "github.com/ipfs/go-merkledag/test"
-	mh "github.com/multiformats/go-multihash"
+	cid "github.com/dms3-fs/go-cid"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	u "github.com/dms3-fs/go-fs-util"
+	dms3ld "github.com/dms3-fs/go-ld-format"
+	mdag "github.com/dms3-fs/go-merkledag"
+	mdagmock "github.com/dms3-fs/go-merkledag/test"
+	mh "github.com/dms3-mft/go-multihash"
 )
 
 // SizeSplitterGen creates a generator.
@@ -29,7 +29,7 @@ func SizeSplitterGen(size int64) chunker.SplitterGen {
 }
 
 // GetDAGServ returns a mock DAGService.
-func GetDAGServ() ipld.DAGService {
+func GetDAGServ() dms3ld.DAGService {
 	return mdagmock.Mock()
 }
 
@@ -57,7 +57,7 @@ func init() {
 }
 
 // GetNode returns a unixfs file node with the specified data.
-func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ipld.Node {
+func GetNode(t testing.TB, dserv dms3ld.DAGService, data []byte, opts NodeOpts) dms3ld.Node {
 	in := bytes.NewReader(data)
 
 	dbp := h.DagBuilderParams{
@@ -76,12 +76,12 @@ func GetNode(t testing.TB, dserv ipld.DAGService, data []byte, opts NodeOpts) ip
 }
 
 // GetEmptyNode returns an empty unixfs file node.
-func GetEmptyNode(t testing.TB, dserv ipld.DAGService, opts NodeOpts) ipld.Node {
+func GetEmptyNode(t testing.TB, dserv dms3ld.DAGService, opts NodeOpts) dms3ld.Node {
 	return GetNode(t, dserv, []byte{}, opts)
 }
 
 // GetRandomNode returns a random unixfs file node.
-func GetRandomNode(t testing.TB, dserv ipld.DAGService, size int64, opts NodeOpts) ([]byte, ipld.Node) {
+func GetRandomNode(t testing.TB, dserv dms3ld.DAGService, size int64, opts NodeOpts) ([]byte, dms3ld.Node) {
 	in := io.LimitReader(u.NewTimeSeededRand(), size)
 	buf, err := ioutil.ReadAll(in)
 	if err != nil {
@@ -106,7 +106,7 @@ func ArrComp(a, b []byte) error {
 }
 
 // PrintDag pretty-prints the given dag to stdout.
-func PrintDag(nd *mdag.ProtoNode, ds ipld.DAGService, indent int) {
+func PrintDag(nd *mdag.ProtoNode, ds dms3ld.DAGService, indent int) {
 	pbd, err := ft.FromBytes(nd.Data())
 	if err != nil {
 		panic(err)

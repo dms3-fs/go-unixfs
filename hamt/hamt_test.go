@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	dag "github.com/ipfs/go-merkledag"
-	mdtest "github.com/ipfs/go-merkledag/test"
-	ft "github.com/ipfs/go-unixfs"
+	dag "github.com/dms3-fs/go-merkledag"
+	mdtest "github.com/dms3-fs/go-merkledag/test"
+	ft "github.com/dms3-fs/go-unixfs"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 func shuffle(seed int64, arr []string) {
@@ -25,11 +25,11 @@ func shuffle(seed int64, arr []string) {
 	}
 }
 
-func makeDir(ds ipld.DAGService, size int) ([]string, *Shard, error) {
+func makeDir(ds dms3ld.DAGService, size int) ([]string, *Shard, error) {
 	return makeDirWidth(ds, size, 256)
 }
 
-func makeDirWidth(ds ipld.DAGService, size, width int) ([]string, *Shard, error) {
+func makeDirWidth(ds dms3ld.DAGService, size, width int) ([]string, *Shard, error) {
 	ctx := context.Background()
 
 	s, _ := NewShard(ds, width)
@@ -73,7 +73,7 @@ func assertLink(s *Shard, name string, found bool) error {
 	}
 }
 
-func assertSerializationWorks(ds ipld.DAGService, s *Shard) error {
+func assertSerializationWorks(ds dms3ld.DAGService, s *Shard) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	nd, err := s.Node()
@@ -540,7 +540,7 @@ func BenchmarkHAMTWalk(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		cnt := 0
-		err = s.ForEachLink(ctx, func(l *ipld.Link) error {
+		err = s.ForEachLink(ctx, func(l *dms3ld.Link) error {
 			cnt++
 			return nil
 		})

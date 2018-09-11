@@ -9,19 +9,19 @@ import (
 	mrand "math/rand"
 	"testing"
 
-	h "github.com/ipfs/go-unixfs/importer/helpers"
-	uio "github.com/ipfs/go-unixfs/io"
+	h "github.com/dms3-fs/go-unixfs/importer/helpers"
+	uio "github.com/dms3-fs/go-unixfs/io"
 
-	chunker "github.com/ipfs/go-ipfs-chunker"
-	u "github.com/ipfs/go-ipfs-util"
-	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
-	mdtest "github.com/ipfs/go-merkledag/test"
+	chunker "github.com/dms3-fs/go-fs-chunker"
+	u "github.com/dms3-fs/go-fs-util"
+	dms3ld "github.com/dms3-fs/go-ld-format"
+	dag "github.com/dms3-fs/go-merkledag"
+	mdtest "github.com/dms3-fs/go-merkledag/test"
 )
 
 // TODO: extract these tests and more as a generic layout test suite
 
-func buildTestDag(ds ipld.DAGService, spl chunker.Splitter) (*dag.ProtoNode, error) {
+func buildTestDag(ds dms3ld.DAGService, spl chunker.Splitter) (*dag.ProtoNode, error) {
 	dbp := h.DagBuilderParams{
 		Dagserv:  ds,
 		Maxlinks: h.DefaultLinksPerBlock,
@@ -35,7 +35,7 @@ func buildTestDag(ds ipld.DAGService, spl chunker.Splitter) (*dag.ProtoNode, err
 	return nd.(*dag.ProtoNode), nil
 }
 
-func getTestDag(t *testing.T, ds ipld.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
+func getTestDag(t *testing.T, ds dms3ld.DAGService, size int64, blksize int64) (*dag.ProtoNode, []byte) {
 	data := make([]byte, size)
 	u.NewTimeSeededRand().Read(data)
 	r := bytes.NewReader(data)

@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	mdtest "github.com/ipfs/go-merkledag/test"
-	ft "github.com/ipfs/go-unixfs"
+	mdtest "github.com/dms3-fs/go-merkledag/test"
+	ft "github.com/dms3-fs/go-unixfs"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 func getNames(prefix string, count int) []string {
@@ -113,7 +113,7 @@ func validateOpSetCompletion(t *testing.T, s *Shard, keep, temp []string) error 
 	return nil
 }
 
-func executeOpSet(t *testing.T, ds ipld.DAGService, width int, ops []testOp) (*Shard, error) {
+func executeOpSet(t *testing.T, ds dms3ld.DAGService, width int, ops []testOp) (*Shard, error) {
 	ctx := context.TODO()
 	s, err := NewShard(ds, width)
 	if err != nil {

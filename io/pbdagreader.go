@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"io"
 
-	mdag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	ftpb "github.com/ipfs/go-unixfs/pb"
+	mdag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	ftpb "github.com/dms3-fs/go-unixfs/pb"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // PBDagReader provides a way to easily read the data contained in a dag.
 type PBDagReader struct {
-	serv ipld.NodeGetter
+	serv dms3ld.NodeGetter
 
 	// UnixFS file (it should be of type `Data_File` or `Data_Raw` only).
 	file *ft.FSNode
@@ -26,7 +26,7 @@ type PBDagReader struct {
 	buf ReadSeekCloser
 
 	// NodePromises for each of 'nodes' child links
-	promises []*ipld.NodePromise
+	promises []*dms3ld.NodePromise
 
 	// the cid of each child of the current node
 	links []*cid.Cid
@@ -47,13 +47,13 @@ type PBDagReader struct {
 var _ DagReader = (*PBDagReader)(nil)
 
 // NewPBFileReader constructs a new PBFileReader.
-func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, file *ft.FSNode, serv ipld.NodeGetter) *PBDagReader {
+func NewPBFileReader(ctx context.Context, n *mdag.ProtoNode, file *ft.FSNode, serv dms3ld.NodeGetter) *PBDagReader {
 	fctx, cancel := context.WithCancel(ctx)
 	curLinks := getLinkCids(n)
 	return &PBDagReader{
 		serv:     serv,
 		buf:      NewBufDagReader(file.Data()),
-		promises: make([]*ipld.NodePromise, len(curLinks)),
+		promises: make([]*dms3ld.NodePromise, len(curLinks)),
 		links:    curLinks,
 		ctx:      fctx,
 		cancel:   cancel,
@@ -69,7 +69,7 @@ func (dr *PBDagReader) preload(ctx context.Context, beg int) {
 		end = len(dr.links)
 	}
 
-	copy(dr.promises[beg:], ipld.GetNodes(ctx, dr.serv, dr.links[beg:end]))
+	copy(dr.promises[beg:], dms3ld.GetNodes(ctx, dr.serv, dr.links[beg:end]))
 }
 
 // precalcNextBuf follows the next link in line and loads it from the
@@ -125,7 +125,7 @@ func (dr *PBDagReader) precalcNextBuf(ctx context.Context) error {
 	return dr.loadBufNode(nxt)
 }
 
-func (dr *PBDagReader) loadBufNode(node ipld.Node) error {
+func (dr *PBDagReader) loadBufNode(node dms3ld.Node) error {
 	switch node := node.(type) {
 	case *mdag.ProtoNode:
 		fsNode, err := ft.FSNodeFromBytes(node.Data())
@@ -151,7 +151,7 @@ func (dr *PBDagReader) loadBufNode(node ipld.Node) error {
 	}
 }
 
-func getLinkCids(n ipld.Node) []*cid.Cid {
+func getLinkCids(n dms3ld.Node) []*cid.Cid {
 	links := n.Links()
 	out := make([]*cid.Cid, 0, len(links))
 	for _, l := range links {

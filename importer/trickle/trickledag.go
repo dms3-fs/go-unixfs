@@ -20,12 +20,12 @@ import (
 	"errors"
 	"fmt"
 
-	ft "github.com/ipfs/go-unixfs"
-	h "github.com/ipfs/go-unixfs/importer/helpers"
+	ft "github.com/dms3-fs/go-unixfs"
+	h "github.com/dms3-fs/go-unixfs/importer/helpers"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
-	dag "github.com/ipfs/go-merkledag"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
+	dag "github.com/dms3-fs/go-merkledag"
 )
 
 // layerRepeat specifies how many times to append a child tree of a
@@ -36,7 +36,7 @@ const layerRepeat = 4
 // Layout builds a new DAG with the trickle format using the provided
 // DagBuilderHelper. See the module's description for a more detailed
 // explanation.
-func Layout(db *h.DagBuilderHelper) (ipld.Node, error) {
+func Layout(db *h.DagBuilderHelper) (dms3ld.Node, error) {
 	root := db.NewUnixfsNode()
 	if err := fillTrickleRec(db, root, -1); err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func fillTrickleRec(db *h.DagBuilderHelper, node *h.UnixfsNode, maxDepth int) er
 }
 
 // Append appends the data in `db` to the dag, using the Trickledag format
-func Append(ctx context.Context, basen ipld.Node, db *h.DagBuilderHelper) (out ipld.Node, errOut error) {
+func Append(ctx context.Context, basen dms3ld.Node, db *h.DagBuilderHelper) (out dms3ld.Node, errOut error) {
 	base, ok := basen.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
@@ -254,7 +254,7 @@ func trickleDepthInfo(node *h.UnixfsNode, maxlinks int) (int, int) {
 
 // VerifyParams is used by VerifyTrickleDagStructure
 type VerifyParams struct {
-	Getter      ipld.NodeGetter
+	Getter      dms3ld.NodeGetter
 	Direct      int
 	LayerRepeat int
 	Prefix      *cid.Prefix
@@ -263,12 +263,12 @@ type VerifyParams struct {
 
 // VerifyTrickleDagStructure checks that the given dag matches exactly the trickle dag datastructure
 // layout
-func VerifyTrickleDagStructure(nd ipld.Node, p VerifyParams) error {
+func VerifyTrickleDagStructure(nd dms3ld.Node, p VerifyParams) error {
 	return verifyTDagRec(nd, -1, p)
 }
 
 // Recursive call for verifying the structure of a trickledag
-func verifyTDagRec(n ipld.Node, depth int, p VerifyParams) error {
+func verifyTDagRec(n dms3ld.Node, depth int, p VerifyParams) error {
 	codec := cid.DagProtobuf
 	if depth == 0 {
 		if len(n.Links()) > 0 {

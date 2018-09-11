@@ -1,5 +1,5 @@
-// Package unixfs implements a data format for files in the IPFS filesystem It
-// is not the only format in ipfs, but it is the one that the filesystem
+// Package unixfs implements a data format for files in the DMS3FS filesystem It
+// is not the only format in dms3fs, but it is the one that the filesystem
 // assumes
 package unixfs
 
@@ -8,8 +8,8 @@ import (
 
 	proto "github.com/gogo/protobuf/proto"
 
-	dag "github.com/ipfs/go-merkledag"
-	pb "github.com/ipfs/go-unixfs/pb"
+	dag "github.com/dms3-fs/go-merkledag"
+	pb "github.com/dms3-fs/go-unixfs/pb"
 )
 
 // Shorthands for protobuffer types
@@ -168,7 +168,7 @@ func FSNodeFromBytes(b []byte) (*FSNode, error) {
 //
 // It also initializes the `Filesize` pointer field to ensure its value
 // is never nil before marshaling, this is not a required field but it is
-// done to be backwards compatible with previous `go-ipfs` versions hash.
+// done to be backwards compatible with previous `go-dms3-fs` versions hash.
 // (If it wasn't initialized there could be cases where `Filesize` could
 // have been left at nil, when the `FSNode` was created but no data or
 // child nodes were set to adjust it, as is the case in `NewLeaf()`.)

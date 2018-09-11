@@ -10,26 +10,26 @@ import (
 	"path"
 	"time"
 
-	mdag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	uio "github.com/ipfs/go-unixfs/io"
-	upb "github.com/ipfs/go-unixfs/pb"
+	mdag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	uio "github.com/dms3-fs/go-unixfs/io"
+	upb "github.com/dms3-fs/go-unixfs/pb"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // Writer is a utility structure that helps to write
 // unixfs merkledag nodes as a tar archive format.
 // It wraps any io.Writer.
 type Writer struct {
-	Dag  ipld.DAGService
+	Dag  dms3ld.DAGService
 	TarW *tar.Writer
 
 	ctx context.Context
 }
 
 // NewWriter wraps given io.Writer.
-func NewWriter(ctx context.Context, dag ipld.DAGService, w io.Writer) (*Writer, error) {
+func NewWriter(ctx context.Context, dag dms3ld.DAGService, w io.Writer) (*Writer, error) {
 	return &Writer{
 		Dag:  dag,
 		TarW: tar.NewWriter(w),
@@ -46,7 +46,7 @@ func (w *Writer) writeDir(nd *mdag.ProtoNode, fpath string) error {
 		return err
 	}
 
-	return dir.ForEachLink(w.ctx, func(l *ipld.Link) error {
+	return dir.ForEachLink(w.ctx, func(l *dms3ld.Link) error {
 		child, err := w.Dag.Get(w.ctx, l.Cid)
 		if err != nil {
 			return err
@@ -70,7 +70,7 @@ func (w *Writer) writeFile(nd *mdag.ProtoNode, fsNode *ft.FSNode, fpath string) 
 }
 
 // WriteNode adds a node to the archive.
-func (w *Writer) WriteNode(nd ipld.Node, fpath string) error {
+func (w *Writer) WriteNode(nd dms3ld.Node, fpath string) error {
 	switch nd := nd.(type) {
 	case *mdag.ProtoNode:
 		fsNode, err := ft.FSNodeFromBytes(nd.Data())

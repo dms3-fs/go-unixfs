@@ -5,11 +5,11 @@ import (
 	"errors"
 	"io"
 
-	mdag "github.com/ipfs/go-merkledag"
-	ft "github.com/ipfs/go-unixfs"
-	ftpb "github.com/ipfs/go-unixfs/pb"
+	mdag "github.com/dms3-fs/go-merkledag"
+	ft "github.com/dms3-fs/go-unixfs"
+	ftpb "github.com/dms3-fs/go-unixfs/pb"
 
-	ipld "github.com/ipfs/go-ipld-format"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // Common errors
@@ -38,7 +38,7 @@ type ReadSeekCloser interface {
 
 // NewDagReader creates a new reader object that reads the data represented by
 // the given node, using the passed in DAGService for data retrieval
-func NewDagReader(ctx context.Context, n ipld.Node, serv ipld.NodeGetter) (DagReader, error) {
+func NewDagReader(ctx context.Context, n dms3ld.Node, serv dms3ld.NodeGetter) (DagReader, error) {
 	switch n := n.(type) {
 	case *mdag.RawNode:
 		return NewBufDagReader(n.RawData()), nil

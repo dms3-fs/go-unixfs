@@ -1,4 +1,4 @@
-// Package hamt implements a Hash Array Mapped Trie over ipfs merkledag nodes.
+// Package hamt implements a Hash Array Mapped Trie over dms3fs merkledag nodes.
 // It is implemented mostly as described in the wikipedia article on HAMTs,
 // however the table size is variable (usually 256 in our usages) as opposed to
 // 32 as suggested in the article.  The hash function used is currently
@@ -25,14 +25,14 @@ import (
 	"fmt"
 	"os"
 
-	dag "github.com/ipfs/go-merkledag"
-	format "github.com/ipfs/go-unixfs"
-	upb "github.com/ipfs/go-unixfs/pb"
+	dag "github.com/dms3-fs/go-merkledag"
+	format "github.com/dms3-fs/go-unixfs"
+	upb "github.com/dms3-fs/go-unixfs/pb"
 
 	bitfield "github.com/Stebalien/go-bitfield"
 	proto "github.com/gogo/protobuf/proto"
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -58,17 +58,17 @@ type Shard struct {
 	prefixPadStr string
 	maxpadlen    int
 
-	dserv ipld.DAGService
+	dserv dms3ld.DAGService
 }
 
 // child can either be another shard, or a leaf node value
 type child interface {
-	Link() (*ipld.Link, error)
+	Link() (*dms3ld.Link, error)
 	Label() string
 }
 
 // NewShard creates a new, empty HAMT shard with the given size.
-func NewShard(dserv ipld.DAGService, size int) (*Shard, error) {
+func NewShard(dserv dms3ld.DAGService, size int) (*Shard, error) {
 	ds, err := makeShard(dserv, size)
 	if err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func NewShard(dserv ipld.DAGService, size int) (*Shard, error) {
 	return ds, nil
 }
 
-func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
+func makeShard(ds dms3ld.DAGService, size int) (*Shard, error) {
 	lg2s, err := logtwo(size)
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func makeShard(ds ipld.DAGService, size int) (*Shard, error) {
 }
 
 // NewHamtFromDag creates new a HAMT shard from the given DAG.
-func NewHamtFromDag(dserv ipld.DAGService, nd ipld.Node) (*Shard, error) {
+func NewHamtFromDag(dserv dms3ld.DAGService, nd dms3ld.Node) (*Shard, error) {
 	pbnd, ok := nd.(*dag.ProtoNode)
 	if !ok {
 		return nil, dag.ErrNotProtobuf
@@ -140,7 +140,7 @@ func (ds *Shard) CidBuilder() cid.Builder {
 }
 
 // Node serializes the HAMT structure into a merkledag node with unixfs formatting
-func (ds *Shard) Node() (ipld.Node, error) {
+func (ds *Shard) Node() (dms3ld.Node, error) {
 	out := new(dag.ProtoNode)
 	out.SetCidBuilder(ds.builder)
 
@@ -198,11 +198,11 @@ func (ds *Shard) Node() (ipld.Node, error) {
 
 type shardValue struct {
 	key string
-	val *ipld.Link
+	val *dms3ld.Link
 }
 
 // Link returns a link to this node
-func (sv *shardValue) Link() (*ipld.Link, error) {
+func (sv *shardValue) Link() (*dms3ld.Link, error) {
 	return sv.val, nil
 }
 
@@ -223,14 +223,14 @@ func (ds *Shard) Label() string {
 }
 
 // Set sets 'name' = nd in the HAMT
-func (ds *Shard) Set(ctx context.Context, name string, nd ipld.Node) error {
+func (ds *Shard) Set(ctx context.Context, name string, nd dms3ld.Node) error {
 	hv := &hashBits{b: hash([]byte(name))}
 	err := ds.dserv.Add(ctx, nd)
 	if err != nil {
 		return err
 	}
 
-	lnk, err := ipld.MakeLink(nd)
+	lnk, err := dms3ld.MakeLink(nd)
 	if err != nil {
 		return err
 	}
@@ -246,10 +246,10 @@ func (ds *Shard) Remove(ctx context.Context, name string) error {
 }
 
 // Find searches for a child node by 'name' within this hamt
-func (ds *Shard) Find(ctx context.Context, name string) (*ipld.Link, error) {
+func (ds *Shard) Find(ctx context.Context, name string) (*dms3ld.Link, error) {
 	hv := &hashBits{b: hash([]byte(name))}
 
-	var out *ipld.Link
+	var out *dms3ld.Link
 	err := ds.getValue(ctx, hv, name, func(sv *shardValue) error {
 		out = sv.val
 		return nil
@@ -318,7 +318,7 @@ func (ds *Shard) setChild(i int, c child) {
 }
 
 // Link returns a merklelink to this shard node
-func (ds *Shard) Link() (*ipld.Link, error) {
+func (ds *Shard) Link() (*dms3ld.Link, error) {
 	nd, err := ds.Node()
 	if err != nil {
 		return nil, err
@@ -329,10 +329,10 @@ func (ds *Shard) Link() (*ipld.Link, error) {
 		return nil, err
 	}
 
-	return ipld.MakeLink(nd)
+	return dms3ld.MakeLink(nd)
 }
 
-func (ds *Shard) insertChild(idx int, key string, lnk *ipld.Link) error {
+func (ds *Shard) insertChild(idx int, key string, lnk *dms3ld.Link) error {
 	if lnk == nil {
 		return os.ErrNotExist
 	}
@@ -347,7 +347,7 @@ func (ds *Shard) insertChild(idx int, key string, lnk *ipld.Link) error {
 	}
 
 	ds.children = append(ds.children[:i], append([]child{sv}, ds.children[i:]...)...)
-	ds.nd.SetLinks(append(ds.nd.Links()[:i], append([]*ipld.Link{nil}, ds.nd.Links()[i:]...)...))
+	ds.nd.SetLinks(append(ds.nd.Links()[:i], append([]*dms3ld.Link{nil}, ds.nd.Links()[i:]...)...))
 	return nil
 }
 
@@ -389,9 +389,9 @@ func (ds *Shard) getValue(ctx context.Context, hv *hashBits, key string, cb func
 }
 
 // EnumLinks collects all links in the Shard.
-func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
-	var links []*ipld.Link
-	err := ds.ForEachLink(ctx, func(l *ipld.Link) error {
+func (ds *Shard) EnumLinks(ctx context.Context) ([]*dms3ld.Link, error) {
+	var links []*dms3ld.Link
+	err := ds.ForEachLink(ctx, func(l *dms3ld.Link) error {
 		links = append(links, l)
 		return nil
 	})
@@ -399,7 +399,7 @@ func (ds *Shard) EnumLinks(ctx context.Context) ([]*ipld.Link, error) {
 }
 
 // ForEachLink walks the Shard and calls the given function.
-func (ds *Shard) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
+func (ds *Shard) ForEachLink(ctx context.Context, f func(*dms3ld.Link) error) error {
 	return ds.walkTrie(ctx, func(sv *shardValue) error {
 		lnk := sv.val
 		lnk.Name = sv.key
@@ -432,7 +432,7 @@ func (ds *Shard) walkTrie(ctx context.Context, cb func(*shardValue) error) error
 	return nil
 }
 
-func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val *ipld.Link) error {
+func (ds *Shard) modifyValue(ctx context.Context, hv *hashBits, key string, val *dms3ld.Link) error {
 	idx := hv.Next(ds.tableSizeLg2)
 
 	if !ds.bitfield.Bit(idx) {

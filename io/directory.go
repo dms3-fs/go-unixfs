@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"os"
 
-	mdag "github.com/ipfs/go-merkledag"
-	format "github.com/ipfs/go-unixfs"
-	hamt "github.com/ipfs/go-unixfs/hamt"
+	mdag "github.com/dms3-fs/go-merkledag"
+	format "github.com/dms3-fs/go-unixfs"
+	hamt "github.com/dms3-fs/go-unixfs/hamt"
 
-	cid "github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
+	cid "github.com/dms3-fs/go-cid"
+	dms3ld "github.com/dms3-fs/go-ld-format"
 )
 
 // UseHAMTSharding is a global flag that signifies whether or not to use the
@@ -33,23 +33,23 @@ type Directory interface {
 	SetCidBuilder(cid.Builder)
 
 	// AddChild adds a (name, key) pair to the root node.
-	AddChild(context.Context, string, ipld.Node) error
+	AddChild(context.Context, string, dms3ld.Node) error
 
 	// ForEachLink applies the given function to Links in the directory.
-	ForEachLink(context.Context, func(*ipld.Link) error) error
+	ForEachLink(context.Context, func(*dms3ld.Link) error) error
 
 	// Links returns the all the links in the directory node.
-	Links(context.Context) ([]*ipld.Link, error)
+	Links(context.Context) ([]*dms3ld.Link, error)
 
 	// Find returns the root node of the file named 'name' within this directory.
 	// In the case of HAMT-directories, it will traverse the tree.
-	Find(context.Context, string) (ipld.Node, error)
+	Find(context.Context, string) (dms3ld.Node, error)
 
 	// RemoveChild removes the child with the given name.
 	RemoveChild(context.Context, string) error
 
 	// GetNode returns the root of this directory.
-	GetNode() (ipld.Node, error)
+	GetNode() (dms3ld.Node, error)
 
 	// GetCidBuilder returns the CID Builder used.
 	GetCidBuilder() cid.Builder
@@ -62,18 +62,18 @@ type Directory interface {
 // are stored in a single node.
 type BasicDirectory struct {
 	node  *mdag.ProtoNode
-	dserv ipld.DAGService
+	dserv dms3ld.DAGService
 }
 
 // HAMTDirectory is the HAMT implementation of `Directory`.
 // (See package `hamt` for more information.)
 type HAMTDirectory struct {
 	shard *hamt.Shard
-	dserv ipld.DAGService
+	dserv dms3ld.DAGService
 }
 
 // NewDirectory returns a Directory. It needs a `DAGService` to add the children.
-func NewDirectory(dserv ipld.DAGService) Directory {
+func NewDirectory(dserv dms3ld.DAGService) Directory {
 	if UseHAMTSharding {
 		dir := new(HAMTDirectory)
 		s, err := hamt.NewShard(dserv, DefaultShardWidth)
@@ -94,9 +94,9 @@ func NewDirectory(dserv ipld.DAGService) Directory {
 // ErrNotADir implies that the given node was not a unixfs directory
 var ErrNotADir = fmt.Errorf("merkledag node was not a directory or shard")
 
-// NewDirectoryFromNode loads a unixfs directory from the given IPLD node and
+// NewDirectoryFromNode loads a unixfs directory from the given DMS3LD node and
 // DAGService.
-func NewDirectoryFromNode(dserv ipld.DAGService, node ipld.Node) (Directory, error) {
+func NewDirectoryFromNode(dserv dms3ld.DAGService, node dms3ld.Node) (Directory, error) {
 	protoBufNode, ok := node.(*mdag.ProtoNode)
 	if !ok {
 		return nil, ErrNotADir
@@ -134,7 +134,7 @@ func (d *BasicDirectory) SetCidBuilder(builder cid.Builder) {
 
 // AddChild implements the `Directory` interface. It adds (or replaces)
 // a link to the given `node` under `name`.
-func (d *BasicDirectory) AddChild(ctx context.Context, name string, node ipld.Node) error {
+func (d *BasicDirectory) AddChild(ctx context.Context, name string, node dms3ld.Node) error {
 	d.node.RemoveNodeLink(name)
 	// Remove old link (if it existed), don't check a potential `ErrNotFound`.
 
@@ -142,7 +142,7 @@ func (d *BasicDirectory) AddChild(ctx context.Context, name string, node ipld.No
 }
 
 // ForEachLink implements the `Directory` interface.
-func (d *BasicDirectory) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
+func (d *BasicDirectory) ForEachLink(ctx context.Context, f func(*dms3ld.Link) error) error {
 	for _, l := range d.node.Links() {
 		if err := f(l); err != nil {
 			return err
@@ -152,12 +152,12 @@ func (d *BasicDirectory) ForEachLink(ctx context.Context, f func(*ipld.Link) err
 }
 
 // Links implements the `Directory` interface.
-func (d *BasicDirectory) Links(ctx context.Context) ([]*ipld.Link, error) {
+func (d *BasicDirectory) Links(ctx context.Context) ([]*dms3ld.Link, error) {
 	return d.node.Links(), nil
 }
 
 // Find implements the `Directory` interface.
-func (d *BasicDirectory) Find(ctx context.Context, name string) (ipld.Node, error) {
+func (d *BasicDirectory) Find(ctx context.Context, name string) (dms3ld.Node, error) {
 	lnk, err := d.node.GetNodeLink(name)
 	if err == mdag.ErrLinkNotFound {
 		err = os.ErrNotExist
@@ -175,7 +175,7 @@ func (d *BasicDirectory) RemoveChild(ctx context.Context, name string) error {
 }
 
 // GetNode implements the `Directory` interface.
-func (d *BasicDirectory) GetNode() (ipld.Node, error) {
+func (d *BasicDirectory) GetNode() (dms3ld.Node, error) {
 	return d.node, nil
 }
 
@@ -217,22 +217,22 @@ func (d *HAMTDirectory) SetCidBuilder(builder cid.Builder) {
 }
 
 // AddChild implements the `Directory` interface.
-func (d *HAMTDirectory) AddChild(ctx context.Context, name string, nd ipld.Node) error {
+func (d *HAMTDirectory) AddChild(ctx context.Context, name string, nd dms3ld.Node) error {
 	return d.shard.Set(ctx, name, nd)
 }
 
 // ForEachLink implements the `Directory` interface.
-func (d *HAMTDirectory) ForEachLink(ctx context.Context, f func(*ipld.Link) error) error {
+func (d *HAMTDirectory) ForEachLink(ctx context.Context, f func(*dms3ld.Link) error) error {
 	return d.shard.ForEachLink(ctx, f)
 }
 
 // Links implements the `Directory` interface.
-func (d *HAMTDirectory) Links(ctx context.Context) ([]*ipld.Link, error) {
+func (d *HAMTDirectory) Links(ctx context.Context) ([]*dms3ld.Link, error) {
 	return d.shard.EnumLinks(ctx)
 }
 
 // Find implements the `Directory` interface. It will traverse the tree.
-func (d *HAMTDirectory) Find(ctx context.Context, name string) (ipld.Node, error) {
+func (d *HAMTDirectory) Find(ctx context.Context, name string) (dms3ld.Node, error) {
 	lnk, err := d.shard.Find(ctx, name)
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (d *HAMTDirectory) RemoveChild(ctx context.Context, name string) error {
 }
 
 // GetNode implements the `Directory` interface.
-func (d *HAMTDirectory) GetNode() (ipld.Node, error) {
+func (d *HAMTDirectory) GetNode() (dms3ld.Node, error) {
 	return d.shard.Node()
 }
 

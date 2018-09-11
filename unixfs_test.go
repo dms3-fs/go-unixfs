@@ -6,7 +6,7 @@ import (
 
 	proto "github.com/gogo/protobuf/proto"
 
-	pb "github.com/ipfs/go-unixfs/pb"
+	pb "github.com/dms3-fs/go-unixfs/pb"
 )
 
 func TestFSNode(t *testing.T) {
@@ -110,7 +110,7 @@ func TestPBdataTools(t *testing.T) {
 		t.Fatal("DataSize didn't throw an error when taking the size of a directory.")
 	}
 
-	catSym, err := SymlinkData("/ipfs/adad123123/meowgie.gif")
+	catSym, err := SymlinkData("/dms3fs/adad123123/meowgie.gif")
 	if err != nil {
 		t.Fatal(err)
 	}
